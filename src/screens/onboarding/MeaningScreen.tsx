@@ -1,119 +1,167 @@
-import React from 'react';
-import {
-  Image,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { Colors } from '../../theme';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { Colors, Fonts } from '../../theme';
 import { OnboardingLayout } from '../../components/Onboarding/OnboardingLayout';
 
 export const MeaningScreen: React.FC<{ onContinue: () => void; onBack: () => void }> = ({ onContinue, onBack }) => {
+  const titleAnim = useRef(new Animated.Value(0)).current;
+  const card1Anim = useRef(new Animated.Value(0)).current;
+  const card2Anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.stagger(140, [
+      Animated.timing(titleAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(card1Anim, { toValue: 1, duration: 380, useNativeDriver: true }),
+      Animated.timing(card2Anim, { toValue: 1, duration: 380, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const slideUp = (anim: Animated.Value) => ({
+    opacity: anim,
+    transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+  });
+
   return (
-    <OnboardingLayout 
-      currentStep={2} 
-      totalSteps={4} 
-      onContinue={onContinue}
-      onBack={onBack}
-    >
-      <View style={styles.container}>
-        <Text 
-          style={styles.title}
-        >
-          Aqimo means "Establish the prayer."
-        </Text>
+    <OnboardingLayout currentStep={2} totalSteps={5} onContinue={onContinue} onBack={onBack}>
+      <Animated.View style={[styles.header, slideUp(titleAnim)]}>
+        <Text style={styles.eyebrow}>THE NAME</Text>
+        <Text style={styles.title}>Aqimo means "Establish the prayer."</Text>
+      </Animated.View>
 
-        <View 
-          style={styles.illustrationContainer}
-        >
-          <Image 
-            source={require('../../../assets/illustrations/meaning.png')} 
-            style={styles.illustration}
-            resizeMode="contain"
-          />
-        </View>
-
-        <View 
-          style={styles.infoContainer}
-        >
-          <Text style={styles.label}>Aqimo comes from the verb:</Text>
-          <Text style={styles.arabic}>أَقَامَ</Text>
-          <Text style={styles.translation}>(to establish)</Text>
-          
-          <Text style={[styles.label, { marginTop: 20 }]}>appearing throughout the Qur'an:</Text>
-          <Text style={styles.arabicLarge}>أَقِيمُوا الصَّلَاةَ</Text>
-          <Text style={styles.translationSmall}>(aqīmū aṣ-ṣalāh)</Text>
-          <Text style={styles.meaningText}>"Establish the prayer."</Text>
-        </View>
+      <View style={styles.imageRow}>
+        <Image
+          source={require('../../../assets/illustrations/meaning.png')}
+          style={styles.illustration}
+          resizeMode="contain"
+        />
       </View>
+
+      <Animated.View style={[styles.card, slideUp(card1Anim)]}>
+        <View style={styles.cardLeft}>
+          <Text style={styles.cardLabel}>Root verb</Text>
+          <Text style={styles.cardNote}>from Classical Arabic</Text>
+        </View>
+        <View style={styles.cardRight}>
+          <Text style={styles.arabicWord}>أَقَامَ</Text>
+          <Text style={styles.transliteration}>aqāma — to establish</Text>
+        </View>
+      </Animated.View>
+
+      <Animated.View style={[styles.quoteCard, slideUp(card2Anim)]}>
+        <View style={styles.quoteAccent} />
+        <View style={styles.quoteBody}>
+          <Text style={styles.arabicPhrase}>أَقِيمُوا الصَّلَاةَ</Text>
+          <Text style={styles.quoteRoman}>aqīmū aṣ-ṣalāh</Text>
+          <Text style={styles.quoteMeaning}>"Establish the prayer" — repeated throughout the Qur'an</Text>
+        </View>
+      </Animated.View>
     </OnboardingLayout>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 10,
-    alignItems: 'center',
+  header: {
+    marginBottom: 20,
+  },
+  eyebrow: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    letterSpacing: 2,
+    marginBottom: 8,
+    fontFamily: Fonts.bold,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 26,
     color: Colors.primary,
-    marginBottom: 10,
-    textAlign: 'left',
-    width: '100%',
+    lineHeight: 34,
+    fontFamily: Fonts.extrabold,
+    letterSpacing: -0.4,
   },
-  illustrationContainer: {
-    width: '100%',
-    height: 140,
+  imageRow: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
+    marginBottom: 20,
   },
   illustration: {
-    width: 140,
-    height: 140,
+    width: 110,
+    height: 110,
   },
-  infoContainer: {
-    flex: 1,
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 18,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    width: '100%',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  label: {
-    fontSize: 16,
+  cardLeft: {
+    flex: 1,
+  },
+  cardLabel: {
+    fontSize: 14,
     color: Colors.text,
+    fontFamily: Fonts.bold,
+    marginBottom: 2,
+  },
+  cardNote: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontFamily: Fonts.regular,
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+  },
+  arabicWord: {
+    fontSize: 30,
+    color: Colors.primary,
+    marginBottom: 2,
+  },
+  transliteration: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontFamily: Fonts.semibold,
+  },
+  quoteCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  quoteAccent: {
+    width: 5,
+    backgroundColor: Colors.gold,
+  },
+  quoteBody: {
+    flex: 1,
+    padding: 18,
+  },
+  arabicPhrase: {
+    fontSize: 26,
+    color: Colors.white,
+    marginBottom: 4,
     textAlign: 'center',
-    fontWeight: '500',
   },
-  arabic: {
-    fontSize: 36,
-    color: Colors.primary,
-    fontWeight: '400',
-    marginVertical: 5,
+  quoteRoman: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: Fonts.semibold,
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  arabicLarge: {
-    fontSize: 32,
-    color: Colors.primary,
-    fontWeight: '400',
-    marginVertical: 5,
-  },
-  translation: {
+  quoteMeaning: {
     fontSize: 14,
-    color: Colors.textLight,
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
-  },
-  translationSmall: {
-    fontSize: 14,
-    color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  meaningText: {
-    fontSize: 18,
-    color: Colors.primary,
-    fontWeight: '600',
-    textAlign: 'center',
+    lineHeight: 20,
+    fontFamily: Fonts.regular,
+    fontStyle: 'italic',
   },
 });
