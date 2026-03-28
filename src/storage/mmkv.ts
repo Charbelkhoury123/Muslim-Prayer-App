@@ -1,3 +1,3 @@
-import { createMMKV } from 'react-native-mmkv';
+import { MMKV } from 'react-native-mmkv';
 
-export const prayerStorage = createMMKV({ id: 'prayer-app' });
+export const prayerStorage = new MMKV({ id: 'prayer-app' });

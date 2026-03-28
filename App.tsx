@@ -1,75 +1,136 @@
-import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
+import { useAppStore } from './src/store/useAppStore';
+import { useTranslation } from 'react-i18next';
+import { Colors } from './src/theme';
+import { JournalListScreen } from './src/screens/JournalListScreen';
 
-type Tab = 'home' | 'settings';
+type Tab = 'home' | 'journal' | 'settings';
 
 export default function App() {
+  const { hasOnboarded, setOnboarded } = useAppStore();
   const [tab, setTab] = useState<Tab>('home');
+  const { t } = useTranslation();
+
+  if (!hasOnboarded) {
+    return (
+      <View style={styles.rootOnboarding}>
+        <OnboardingScreen onComplete={() => setOnboarded(true)} />
+        <StatusBar style="dark" />
+      </View>
+    );
+  }
+
+  const renderContent = () => {
+    switch (tab) {
+      case 'home': return <HomeScreen />;
+      case 'journal': return <JournalListScreen />;
+      case 'settings': return <SettingsScreen />;
+    }
+  };
 
   return (
     <View style={styles.root}>
-      <View style={styles.topBar}>
+      <View style={styles.content}>
+        {renderContent()}
+      </View>
+
+      <View style={styles.tabBar}>
         <Pressable
           style={[styles.tab, tab === 'home' && styles.tabActive]}
           onPress={() => setTab('home')}
         >
+          <Ionicons 
+            name={tab === 'home' ? "time" : "time-outline"} 
+            size={24} 
+            color={tab === 'home' ? Colors.white : Colors.textLight} 
+          />
           <Text style={[styles.tabText, tab === 'home' && styles.tabTextActive]}>
-            Times
+            {t('tab.times')}
           </Text>
         </Pressable>
+
+        <Pressable
+          style={[styles.tab, tab === 'journal' && styles.tabActive]}
+          onPress={() => setTab('journal')}
+        >
+          <Ionicons 
+            name={tab === 'journal' ? "book" : "book-outline"} 
+            size={24} 
+            color={tab === 'journal' ? Colors.white : Colors.textLight} 
+          />
+          <Text style={[styles.tabText, tab === 'journal' && styles.tabTextActive]}>
+            {t('tab.journal')}
+          </Text>
+        </Pressable>
+
         <Pressable
           style={[styles.tab, tab === 'settings' && styles.tabActive]}
           onPress={() => setTab('settings')}
         >
-          <Text
-            style={[styles.tabText, tab === 'settings' && styles.tabTextActive]}
-          >
-            Settings
+          <Ionicons 
+            name={tab === 'settings' ? "settings" : "settings-outline"} 
+            size={24} 
+            color={tab === 'settings' ? Colors.white : Colors.textLight} 
+          />
+          <Text style={[styles.tabText, tab === 'settings' && styles.tabTextActive]}>
+            {t('tab.settings')}
           </Text>
         </Pressable>
       </View>
 
-      {tab === 'home' ? <HomeScreen /> : <SettingsScreen />}
-
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </View>
   );
 }
 
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0f1419',
-    paddingTop: 48,
+    backgroundColor: Colors.background,
   },
-  topBar: {
+  rootOnboarding: {
+    flex: 1,
+    backgroundColor: '#F5F2E6',
+  },
+  content: {
+    flex: 1,
+  },
+  tabBar: {
     flexDirection: 'row',
+    backgroundColor: Colors.white,
     paddingHorizontal: 16,
-    marginBottom: 8,
-    gap: 8,
+    paddingBottom: 30, // For home indicator
+    paddingTop: 12,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#1a2332',
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2d3d52',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   tabActive: {
-    borderColor: '#4a7a9e',
-    backgroundColor: '#152028',
+    backgroundColor: Colors.primary,
   },
   tabText: {
-    color: '#8b9aad',
+    color: Colors.textLight,
     fontSize: 16,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#e8eef5',
+    color: Colors.white,
   },
 });

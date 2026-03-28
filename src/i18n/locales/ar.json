@@ -1,0 +1,74 @@
+{
+  "common": {
+    "done": "تم",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "next": "التالي",
+    "skip": "تخطي",
+    "start": "ابدأ الآن",
+    "back": "رجوع",
+    "close": "إغلاق",
+    "loading": "جارٍ التحميل...",
+    "error": "خطأ",
+    "retry": "إعادة المحاولة"
+  },
+  "prayer": {
+    "fajr": "الفجر",
+    "dhuhr": "الظهر",
+    "asr": "العصر",
+    "maghrib": "المغرب",
+    "isha": "العشاء",
+    "sunrise": "الشروق",
+    "timeToPray": "حان وقت الصلاة",
+    "nextPrayer": "الصلاة القادمة",
+    "blockingApps": "حجب التطبيقات",
+    "untilNext": "حتى {{name}}",
+    "iPrayed": "قد صليت",
+    "iMissed": "فاتتني هذه الصلاة",
+    "completed": "تمت",
+    "todaysPrayers": "صلوات اليوم"
+  },
+  "onboarding": {
+    "welcome": "أهلاً بك في أقِمو.",
+    "subtitle": "حافظ على تركيزك في صلاتك من خلال حجب المشتتات الرقمية.",
+    "locationTitle": "أين أنت؟",
+    "locationDesc": "نستخدم موقعك لحساب أوقات الصلاة بدقة وبدون اتصال بالإنترنت.",
+    "allowLocation": "استخدم موقعي الحالي",
+    "blockingTitle": "أقِمو يحجب تطبيقاتك وقت الصلاة.",
+    "blockingDesc": "ستُحجب تطبيقاتك حتى تؤكد \"قد صليت.\"",
+    "commitmentTitle": "التزم بهذا العهد؛ وسيجزيك الله خيرًا.",
+    "commitmentDesc": "أنت على الطريق الصحيح. تتبع صلواتك اليومية. ابنِ الثبات.",
+    "meaningTitle": "أقِمو تعني \"أقِيموا الصلاة.\""
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "notifications": "التنبيهات",
+    "calcMethod": "طريقة الحساب",
+    "madhab": "المذهب (حساب العصر)",
+    "language": "اللغة",
+    "about": "عن أقِمو",
+    "appBlocking": "حجب التطبيقات",
+    "selectApps": "اختر التطبيقات لحجبها",
+    "appsSelected": "{{count}} تطبيقات محددة",
+    "resetOnboarding": "إعادة تعيين المقدمة"
+  },
+  "journal": {
+    "title": "اليوميّات",
+    "reflectOn": "تأمل في {{name}}",
+    "reflectPrompt": "فوات الصلاة فرصة لفهم ما منعك.",
+    "placeholder": "ما الذي منعك من الصلاة؟ كيف يمكنك إقامتها غدًا؟",
+    "saveReflection": "حفظ التأمل",
+    "emptyTitle": "لا توجد إدخالات بعد",
+    "emptyDesc": "ستظهر تأملاتك هنا عندما تسجل صلاة فائتة."
+  },
+  "streak": {
+    "day": "يوم متتالي",
+    "days": "أيام متتالية",
+    "milestone": "{{remaining}} يوم حتى إنجاز {{target}} يوم"
+  },
+  "tab": {
+    "times": "الأوقات",
+    "journal": "اليوميّات",
+    "settings": "الإعدادات"
+  }
+}

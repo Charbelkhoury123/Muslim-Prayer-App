@@ -1,0 +1,74 @@
+{
+  "common": {
+    "done": "Done",
+    "save": "Save",
+    "cancel": "Cancel",
+    "next": "Next",
+    "skip": "Skip",
+    "start": "Get Started",
+    "back": "Back",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry"
+  },
+  "prayer": {
+    "fajr": "Fajr",
+    "dhuhr": "Dhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha",
+    "sunrise": "Sunrise",
+    "timeToPray": "Time to Pray",
+    "nextPrayer": "Next Prayer",
+    "blockingApps": "App Blocking",
+    "untilNext": "Until {{name}}",
+    "iPrayed": "I Have Prayed",
+    "iMissed": "I Missed This One",
+    "completed": "Completed",
+    "todaysPrayers": "Today's Prayers"
+  },
+  "onboarding": {
+    "welcome": "Welcome to Aqimo.",
+    "subtitle": "Stay focused on your Salah by blocking digital distractions.",
+    "locationTitle": "Where are you?",
+    "locationDesc": "We use your location to calculate accurate prayer times offline.",
+    "allowLocation": "Use My Current Location",
+    "blockingTitle": "Aqimo blocks your apps at prayer time.",
+    "blockingDesc": "Your apps will be blocked until you confirm \"I Prayed.\"",
+    "commitmentTitle": "Make this commitment; Allah will reward you.",
+    "commitmentDesc": "You're on the right path. Track your daily prayers. Build consistency.",
+    "meaningTitle": "Aqimo means \"Establish the prayer.\""
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": "Notifications",
+    "calcMethod": "Calculation Method",
+    "madhab": "Asr Calculation (Madhab)",
+    "language": "Language",
+    "about": "About Aqimo",
+    "appBlocking": "App Blocking",
+    "selectApps": "Select Apps to Block",
+    "appsSelected": "{{count}} apps selected",
+    "resetOnboarding": "Reset Onboarding"
+  },
+  "journal": {
+    "title": "Journal",
+    "reflectOn": "Reflect on {{name}}",
+    "reflectPrompt": "Missing a prayer is an opportunity to understand what held you back.",
+    "placeholder": "What prevented you from praying? How can you establish it tomorrow?",
+    "saveReflection": "Save Reflection",
+    "emptyTitle": "No entries yet",
+    "emptyDesc": "Reflections recorded when you miss a prayer will appear here."
+  },
+  "streak": {
+    "day": "DAY STREAK",
+    "days": "DAYS STREAK",
+    "milestone": "{{remaining}} days to {{target}} day milestone"
+  },
+  "tab": {
+    "times": "Times",
+    "journal": "Journal",
+    "settings": "Settings"
+  }
+}

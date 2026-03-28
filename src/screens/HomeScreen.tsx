@@ -1,28 +1,27 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState, useEffect } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, SafeAreaView } from 'react-native';
 import { OBLIGATORY_PRAYER_IDS, type ObligatoryPrayerId } from '../types/prayer';
 import { usePrayerLog } from '../hooks/usePrayerLog';
-import { usePrayerTimes } from '../hooks/usePrayerTimes';
-import { useUserPreferences } from '../hooks/useUserPreferences';
+import { useAppStore } from '../store/useAppStore';
+import { useTranslation } from 'react-i18next';
+import { getPrayerTimesForDate, getNextPrayerBrief } from '../utils/prayerEngine';
 import { formatDurationMs } from '../utils/formatDuration';
+import { Colors } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { QiblaCompass } from '../components/QiblaCompass';
+import { scheduleAthanNotifications } from '../utils/notifications';
+import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
+import { useAppBlocking } from '../hooks/useAppBlocking';
+import { FocusOverlay } from '../components/FocusOverlay';
+import { JournalFormScreen } from './JournalFormScreen';
+import { StreakCard } from '../components/StreakCard';
 
-const PRAYER_LABELS: Record<ObligatoryPrayerId, string> = {
-  fajr: 'Fajr',
-  dhuhr: 'Dhuhr',
-  asr: 'Asr',
-  maghrib: 'Maghrib',
-  isha: 'Isha',
-};
-
-const NEXT_PRAYER_LABELS: Record<string, string> = {
-  fajr: 'Fajr',
-  sunrise: 'Sunrise',
-  dhuhr: 'Dhuhr',
-  asr: 'Asr',
-  maghrib: 'Maghrib',
-  isha: 'Isha',
-};
-
-function fmtTime(d: Date) {
+/**
+ * Format date to local time string (e.g. 5:45 AM)
+ */
+function fmtTime(d: Date | null) {
+  if (!d) return '--:--';
   return d.toLocaleTimeString(undefined, {
     hour: 'numeric',
     minute: '2-digit',
@@ -30,243 +29,350 @@ function fmtTime(d: Date) {
 }
 
 export function HomeScreen() {
-  const { calculationMethod, madhab } = useUserPreferences();
-  const {
-    prayerTimes,
-    isLoadingLocation,
-    locationError,
-    permissionStatus,
-    requestPermissionAndLocation,
-    calendarDayKey,
-    nextPrayer,
-    msUntilNext,
-    coordinates,
-  } = usePrayerTimes({ calculationMethod, madhab });
+  const { t } = useTranslation();
+  const { coordinates, calculationMethod, madhab, notificationsEnabled } = useAppStore();
+  const [showCompass, setShowCompass] = useState(false);
+  const [now, setNow] = useState(new Date());
+  const [showJournal, setShowJournal] = useState(false);
+  const [journalPrayer, setJournalPrayer] = useState<{ id: string, label: string } | null>(null);
 
-  const { todayLog, streak, setCompleted } = usePrayerLog();
+  const prayerTimes = coordinates 
+    ? getPrayerTimesForDate(new Date(), coordinates, calculationMethod, madhab)
+    : null;
 
-  const nextLabel =
-    nextPrayer != null
-      ? NEXT_PRAYER_LABELS[nextPrayer.id] ?? nextPrayer.id
-      : null;
+  const nextPrayer = prayerTimes ? getNextPrayerBrief(prayerTimes, now) : null;
+  const msUntilNext = nextPrayer?.at 
+    ? Math.max(0, nextPrayer.at.getTime() - now.getTime()) 
+    : null;
+
+  const { todayLog, setCompleted } = usePrayerLog();
+  const activeFocus = useAppBlocking();
+
+  const handleMissed = () => {
+    if (activeFocus) {
+      setJournalPrayer({ id: activeFocus.id, label: activeFocus.label });
+      setShowJournal(true);
+    }
+  };
+
+  // Update clock every minute
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Sync notifications when basic settings change
+  useEffect(() => {
+    if (notificationsEnabled && prayerTimes) {
+      // Cast is needed because our types are slightly differently structured than legacy ones
+      scheduleAthanNotifications(prayerTimes as any);
+    }
+  }, [notificationsEnabled, prayerTimes]);
+
+  const handleToggle = (id: ObligatoryPrayerId, current: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCompleted(id, !current);
+  };
 
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Prayer times</Text>
-        <Text style={styles.sub}>
-          {calendarDayKey}
-          {coordinates != null
-            ? ` · ${coordinates.latitude.toFixed(2)}°, ${coordinates.longitude.toFixed(2)}°`
-            : ''}
-          {permissionStatus ? ` · ${permissionStatus}` : ''}
-        </Text>
+    <SafeAreaView style={styles.screen}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>aqimo</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => setShowCompass(!showCompass)} style={styles.headerIconButton}>
+            <Ionicons name={showCompass ? "compass" : "compass-outline"} size={24} color={Colors.primary} />
+          </Pressable>
+          <Ionicons name="share-outline" size={24} color={Colors.primary} />
+        </View>
+      </View>
 
-        {nextPrayer != null && msUntilNext != null && (
-          <View style={styles.nextBox}>
-            <Text style={styles.nextLabel}>Next prayer</Text>
-            <Text style={styles.nextName}>{nextLabel}</Text>
-            <Text style={styles.nextAt}>{fmtTime(nextPrayer.at)}</Text>
-            <Text style={styles.nextCountdown}>
-              in {formatDurationMs(msUntilNext)}
-            </Text>
-          </View>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Qibla Compass Panel */}
+        {showCompass && coordinates && (
+          <Animated.View 
+            entering={FadeInUp.duration(600)}
+            style={styles.compassSection}
+          >
+            <QiblaCompass latitude={coordinates.latitude} longitude={coordinates.longitude} />
+          </Animated.View>
         )}
 
-        <View style={styles.streakBox}>
-          <Text style={styles.streakLabel}>Streak</Text>
-          <Text style={styles.streakValue}>{streak}</Text>
-          <Text style={styles.streakHint}>
-            Days in a row with all five prayers marked complete.
+        {/* Streak & Rewards Card */}
+        <Animated.View entering={FadeInUp.delay(50)}>
+           <StreakCard />
+        </Animated.View>
+
+        {/* Next Prayer Countdown Card */}
+        {nextPrayer != null && (
+          <Animated.View 
+            entering={FadeInUp.delay(100).duration(600)}
+            style={styles.nextBox}
+          >
+            <View style={styles.nextTextContent}>
+              <Text style={styles.nextName}>{t(`prayer.${nextPrayer.id}`)}</Text>
+              <Text style={styles.nextCountdown}>{t('prayer.blockingApps')}</Text>
+              <Text style={styles.nextCountdownTime}>
+                 {msUntilNext != null ? formatDurationMs(msUntilNext) : '--'}
+              </Text>
+              <Text style={styles.nextAt}>{fmtTime(nextPrayer.at)}</Text>
+            </View>
+            <View style={styles.nextIllustration}>
+              <Ionicons name="lock-closed" size={40} color={Colors.white} opacity={0.3} />
+            </View>
+          </Animated.View>
+        )}
+
+        {/* Quote/Ayah */}
+        <Animated.View 
+          entering={FadeInUp.delay(200).duration(600)}
+          style={styles.quoteCard}
+        >
+          <Text style={styles.quoteText}>
+            "Establish prayer for my remembrance."
           </Text>
+          <Text style={styles.quoteSource}>— Qur'an 20:14</Text>
+        </Animated.View>
+
+        {/* Daily Prayer List */}
+        <View style={styles.prayerList}>
+          {prayerTimes && OBLIGATORY_PRAYER_IDS.map((id, index) => {
+             const isCompleted = todayLog[id];
+             const time = id === 'fajr' ? prayerTimes.fajr : 
+                          id === 'dhuhr' ? prayerTimes.dhuhr :
+                          id === 'asr' ? prayerTimes.asr :
+                          id === 'maghrib' ? prayerTimes.maghrib :
+                          prayerTimes.isha;
+             
+             return (
+               <Animated.View 
+                 key={id}
+                 entering={FadeInUp.delay(300 + index * 100).duration(600)}
+                 layout={Layout.springify()}
+               >
+                 <Pressable
+                   style={[styles.prayerRow, isCompleted && styles.prayerRowActive]}
+                   onPress={() => handleToggle(id, isCompleted)}
+                 >
+                   <View style={styles.prayerRowLeft}>
+                      <View style={[styles.checkCircle, isCompleted && styles.checkCircleActive]}>
+                         {isCompleted && <Ionicons name="checkmark" size={16} color={Colors.white} />}
+                      </View>
+                      <View>
+                        <Text style={[styles.prayerName, isCompleted && styles.prayerTextActive]}>
+                           {t(`prayer.${id}`)}
+                        </Text>
+                        <Text style={[styles.prayerStatus, isCompleted && styles.prayerTextActive]}>
+                           {isCompleted ? 'Completed' : fmtTime(time)}
+                        </Text>
+                      </View>
+                   </View>
+                   <Text style={[styles.arabicLabel, isCompleted && styles.prayerTextActive]}>
+                      {t(`prayer.${id}`)} {/* Use t for Arabic translation instead of inline */}
+                   </Text>
+                 </Pressable>
+               </Animated.View>
+             );
+          })}
         </View>
 
-        {isLoadingLocation && (
-          <Text style={styles.muted}>Getting location…</Text>
+        {!coordinates && (
+           <Text style={styles.muted}>Please set your location in Settings to see prayer times.</Text>
         )}
-        {locationError && (
-          <Text style={styles.error}>{locationError.message}</Text>
-        )}
-        {permissionStatus === 'denied' && !isLoadingLocation && (
-          <Pressable style={styles.button} onPress={requestPermissionAndLocation}>
-            <Text style={styles.buttonText}>Retry location permission</Text>
-          </Pressable>
-        )}
-
-        {prayerTimes && (
-          <View style={styles.card}>
-            <Row label="Fajr" time={fmtTime(prayerTimes.fajr)} />
-            <Row label="Sunrise" time={fmtTime(prayerTimes.sunrise)} />
-            <Row label="Dhuhr" time={fmtTime(prayerTimes.dhuhr)} />
-            <Row label="Asr" time={fmtTime(prayerTimes.asr)} />
-            <Row label="Maghrib" time={fmtTime(prayerTimes.maghrib)} />
-            <Row label="Isha" time={fmtTime(prayerTimes.isha)} />
-          </View>
-        )}
-
-        <Text style={styles.sectionTitle}>Today's completion</Text>
-        {OBLIGATORY_PRAYER_IDS.map((id) => (
-          <Pressable
-            key={id}
-            style={[styles.rowBtn, todayLog[id] && styles.rowBtnOn]}
-            onPress={() => setCompleted(id, !todayLog[id])}
-          >
-            <Text style={styles.rowBtnText}>
-              {PRAYER_LABELS[id]} {todayLog[id] ? '✓' : ''}
-            </Text>
-          </Pressable>
-        ))}
       </ScrollView>
-    </View>
-  );
-}
 
-function Row({ label, time }: { label: string; time: string }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowTime}>{time}</Text>
-    </View>
+      {/* Full-screen focus overlay if a prayer session is active */}
+      {activeFocus && !showJournal && (
+        <FocusOverlay 
+          prayerName={activeFocus.label}
+          msRemaining={activeFocus.msRemaining}
+          onComplete={() => handleToggle(activeFocus.id as ObligatoryPrayerId, false)}
+          onMissed={handleMissed}
+        />
+      )}
+
+      {/* Journal Reflection Screen */}
+      {showJournal && journalPrayer && (
+        <View style={StyleSheet.absoluteFill}>
+          <JournalFormScreen 
+             prayerId={journalPrayer.id}
+             prayerName={journalPrayer.label}
+             onClose={() => setShowJournal(false)}
+          />
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#0f1419',
+    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.primary,
+    letterSpacing: -0.5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerIconButton: {
+    padding: 4,
+  },
+  compassSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    backgroundColor: Colors.white,
+    padding: 24,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   scroll: {
     paddingHorizontal: 20,
     paddingBottom: 32,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#e8eef5',
-    marginBottom: 4,
-  },
-  sub: {
-    fontSize: 13,
-    color: '#8b9aad',
-    marginBottom: 20,
-  },
   nextBox: {
-    backgroundColor: '#1e2a3d',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#2d4a6a',
-  },
-  nextLabel: {
-    fontSize: 12,
-    color: '#8b9aad',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  nextName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#a8d4ff',
-    marginTop: 4,
-  },
-  nextAt: {
-    fontSize: 15,
-    color: '#c5d0de',
-    marginTop: 4,
-  },
-  nextCountdown: {
-    fontSize: 14,
-    color: '#7dd3c0',
-    marginTop: 8,
-    fontVariant: ['tabular-nums'],
-  },
-  streakBox: {
-    backgroundColor: '#1a2332',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  streakLabel: {
-    fontSize: 13,
-    color: '#8b9aad',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  streakValue: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#7dd3c0',
-    marginTop: 4,
-  },
-  streakHint: {
-    fontSize: 12,
-    color: '#6b7c90',
-    marginTop: 8,
-  },
-  muted: {
-    color: '#8b9aad',
-    marginBottom: 8,
-  },
-  error: {
-    color: '#f0a4a4',
-    marginBottom: 8,
-  },
-  button: {
-    backgroundColor: '#2d3d52',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#e8eef5',
-    fontWeight: '600',
-  },
-  card: {
-    backgroundColor: '#1a2332',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-    gap: 10,
-  },
-  row: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    padding: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  rowLabel: {
+  nextTextContent: {
+    flex: 1,
+  },
+  nextName: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  nextCountdown: {
+    fontSize: 14,
+    color: Colors.white,
+    opacity: 0.7,
+    marginTop: 4,
+  },
+  nextCountdownTime: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.white,
+    marginTop: 4,
+  },
+  nextAt: {
     fontSize: 16,
-    color: '#c5d0de',
+    color: Colors.white,
+    opacity: 0.6,
+    marginTop: 8,
   },
-  rowTime: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#e8eef5',
-    fontVariant: ['tabular-nums'],
+  nextIllustration: {
+    width: 60,
+    height: 60,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#e8eef5',
-    marginBottom: 10,
+  quoteCard: {
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
-  rowBtn: {
-    backgroundColor: '#1a2332',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    marginBottom: 8,
+  quoteText: {
+    fontSize: 18,
+    fontStyle: 'italic',
+    color: Colors.text,
+    textAlign: 'center',
+    opacity: 0.8,
+    lineHeight: 26,
+  },
+  quoteSource: {
+    fontSize: 14,
+    color: Colors.textLight,
+    marginTop: 8,
+  },
+  prayerList: {
+    gap: 16,
+  },
+  prayerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2d3d52',
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  rowBtnOn: {
-    borderColor: '#4a9078',
-    backgroundColor: '#152620',
+  prayerRowActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  rowBtnText: {
-    color: '#e8eef5',
+  prayerRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  checkCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkCircleActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderColor: Colors.white,
+  },
+  prayerName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  prayerStatus: {
+    fontSize: 14,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  prayerTextActive: {
+    color: Colors.white,
+  },
+  arabicLabel: {
+    fontSize: 24,
+    color: Colors.primary,
+    opacity: 0.2,
+    fontWeight: '400',
+  },
+  muted: {
+    color: Colors.textLight,
+    textAlign: 'center',
+    marginTop: 40,
     fontSize: 16,
   },
 });

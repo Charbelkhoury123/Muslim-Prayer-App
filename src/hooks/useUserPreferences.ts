@@ -6,6 +6,8 @@ import {
   setCalculationMethodKey,
   setMadhabKey,
   type MadhabKey,
+  getNotificationsEnabled,
+  setNotificationsEnabled as setNotificationsEnabledKey,
 } from '../storage/userPreferences';
 import { prayerStorage } from '../storage/mmkv';
 
@@ -24,6 +26,7 @@ export function useUserPreferences() {
     [version]
   );
   const madhab = useMemo(() => getMadhabKey(), [version]);
+  const notificationsEnabled = useMemo(() => getNotificationsEnabled(), [version]);
 
   const setCalculationMethod = useCallback((k: CalculationMethodKey) => {
     setCalculationMethodKey(k);
@@ -33,10 +36,16 @@ export function useUserPreferences() {
     setMadhabKey(k);
   }, []);
 
+  const setNotificationsEnabled = useCallback((v: boolean) => {
+    setNotificationsEnabledKey(v);
+  }, []);
+
   return {
     calculationMethod,
     madhab,
+    notificationsEnabled,
     setCalculationMethod,
     setMadhab,
+    setNotificationsEnabled,
   };
 }

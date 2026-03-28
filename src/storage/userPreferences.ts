@@ -3,6 +3,8 @@ import { prayerStorage } from './mmkv';
 
 const KEY_METHOD = 'prefs:calculationMethod';
 const KEY_MADHAB = 'prefs:madhab';
+const KEY_ONBOARDED = 'prefs:hasCompletedOnboarding';
+const KEY_NOTIFICATIONS = 'prefs:notificationsEnabled';
 
 export type CalculationMethodKey = keyof typeof CalculationMethod;
 export type MadhabKey = (typeof Madhab)[keyof typeof Madhab];
@@ -40,6 +42,22 @@ export function getMadhabKey(): MadhabKey {
 
 export function setMadhabKey(k: MadhabKey): void {
   prayerStorage.set(KEY_MADHAB, k);
+}
+
+export function getHasCompletedOnboarding(): boolean {
+  return prayerStorage.getBoolean(KEY_ONBOARDED) ?? false;
+}
+
+export function setHasCompletedOnboarding(v: boolean): void {
+  prayerStorage.set(KEY_ONBOARDED, v);
+}
+
+export function getNotificationsEnabled(): boolean {
+  return prayerStorage.getBoolean(KEY_NOTIFICATIONS) ?? true;
+}
+
+export function setNotificationsEnabled(v: boolean): void {
+  prayerStorage.set(KEY_NOTIFICATIONS, v);
 }
 
 export const CALCULATION_METHOD_LABELS: Record<CalculationMethodKey, string> = {
