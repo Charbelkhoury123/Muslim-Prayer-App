@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme';
 import { OnboardingLayout } from '../../components/Onboarding/OnboardingLayout';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export const MeaningScreen: React.FC<{ onContinue: () => void; onBack: () => void }> = ({ onContinue, onBack }) => {
   return (
@@ -18,15 +17,13 @@ export const MeaningScreen: React.FC<{ onContinue: () => void; onBack: () => voi
       onBack={onBack}
     >
       <View style={styles.container}>
-        <Animated.Text 
-          entering={FadeInDown.duration(600)}
+        <Text 
           style={styles.title}
         >
           Aqimo means "Establish the prayer."
-        </Animated.Text>
+        </Text>
 
-        <Animated.View 
-          entering={FadeInDown.delay(100).duration(600)}
+        <View 
           style={styles.illustrationContainer}
         >
           <Image 
@@ -34,10 +31,9 @@ export const MeaningScreen: React.FC<{ onContinue: () => void; onBack: () => voi
             style={styles.illustration}
             resizeMode="contain"
           />
-        </Animated.View>
+        </View>
 
-        <Animated.View 
-          entering={FadeInDown.delay(200).duration(600)}
+        <View 
           style={styles.infoContainer}
         >
           <Text style={styles.label}>Aqimo comes from the verb:</Text>
@@ -48,7 +44,7 @@ export const MeaningScreen: React.FC<{ onContinue: () => void; onBack: () => voi
           <Text style={styles.arabicLarge}>أَقِيمُوا الصَّلَاةَ</Text>
           <Text style={styles.translationSmall}>(aqīmū aṣ-ṣalāh)</Text>
           <Text style={styles.meaningText}>"Establish the prayer."</Text>
-        </Animated.View>
+        </View>
       </View>
     </OnboardingLayout>
   );

@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme';
 import { OnboardingLayout } from '../../components/Onboarding/OnboardingLayout';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export const CommitmentScreen: React.FC<{ onContinue: () => void; onBack: () => void }> = ({ onContinue, onBack }) => {
   return (
@@ -18,32 +17,23 @@ export const CommitmentScreen: React.FC<{ onContinue: () => void; onBack: () => 
       onBack={onBack}
     >
       <View style={styles.container}>
-        <Animated.Text 
-          entering={FadeInDown.duration(600)}
-          style={styles.title}
-        >
+        <Text style={styles.title}>
           Make this commitment; Allah will reward you.
-        </Animated.Text>
+        </Text>
 
-        <Animated.View 
-          entering={FadeInDown.delay(100).duration(600)}
-          style={styles.illustrationContainer}
-        >
+        <View style={styles.illustrationContainer}>
           <Image 
             source={require('../../../assets/illustrations/commitment.png')} 
             style={styles.illustration}
             resizeMode="contain"
           />
-        </Animated.View>
+        </View>
 
-        <Animated.View 
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.infoContainer}
-        >
+        <View style={styles.infoContainer}>
           <Text style={styles.description}>
             You're on the right path. Track your daily prayers. Build consistency.
           </Text>
-        </Animated.View>
+        </View>
       </View>
     </OnboardingLayout>
   );

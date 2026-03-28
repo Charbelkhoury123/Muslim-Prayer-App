@@ -1,31 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, View, Text, Image, Animated } from 'react-native';
 import { Magnetometer } from 'expo-sensors';
 import { Qibla, Coordinates } from 'adhan';
 import { Colors } from '../theme';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  useDerivedValue,
-  interpolate,
-  Extrapolation
-} from 'react-native-reanimated';
 
 interface QiblaCompassProps {
   latitude: number;
   longitude: number;
 }
 
-const SPRING_CONFIG = {
-  damping: 20,
-  stiffness: 90,
-  mass: 0.5,
-};
-
 export const QiblaCompass: React.FC<QiblaCompassProps> = ({ latitude, longitude }) => {
   const [qiblaDir, setQiblaDir] = useState(0);
-  const heading = useSharedValue(0);
+  const headingAnim = useRef(new Animated.Value(0)).current;
+  const lastHeading = useRef(0);
 
   useEffect(() => {
     // Calculate Qibla direction from current coordinates
@@ -38,7 +25,7 @@ export const QiblaCompass: React.FC<QiblaCompassProps> = ({ latitude, longitude 
   }, [latitude, longitude]);
 
   const _subscribe = () => {
-    Magnetometer.setUpdateInterval(50); // 20Hz for smooth updates
+    Magnetometer.setUpdateInterval(100);
     Magnetometer.addListener((data) => {
       let angle = 0;
       let { x, y } = data;
@@ -47,7 +34,18 @@ export const QiblaCompass: React.FC<QiblaCompassProps> = ({ latitude, longitude 
       } else {
         angle = (Math.atan2(y, x) + 2 * Math.PI) * (180 / Math.PI);
       }
-      heading.value = Math.round(angle);
+      
+      const newHeading = Math.round(angle);
+      
+      // Simple smoothing to avoid jitter
+      if (Math.abs(newHeading - lastHeading.current) > 1) {
+        Animated.timing(headingAnim, {
+          toValue: newHeading,
+          duration: 100,
+          useNativeDriver: true,
+        }).start();
+        lastHeading.current = newHeading;
+      }
     });
   };
 
@@ -55,27 +53,22 @@ export const QiblaCompass: React.FC<QiblaCompassProps> = ({ latitude, longitude 
     Magnetometer.removeAllListeners();
   };
 
-  // Dial rotation animated style
-  const dialStyle = useAnimatedStyle(() => {
-    const rotation = -heading.value;
-    return {
-      transform: [{ rotate: `${rotation}deg` }],
-    };
+  // Interpolate heading for rotations
+  const dialRotation = headingAnim.interpolate({
+    inputRange: [0, 360],
+    outputRange: ['0deg', '-360deg'],
   });
 
-  // Qibla needle rotation animated style
-  const qiblaStyle = useAnimatedStyle(() => {
-    const qiblaRotation = (qiblaDir - heading.value + 360) % 360;
-    return {
-      transform: [{ rotate: `${qiblaRotation}deg` }],
-    };
+  const qiblaRotation = headingAnim.interpolate({
+    inputRange: [0, 360],
+    outputRange: [`${qiblaDir}deg`, `${qiblaDir - 360}deg`],
   });
 
   return (
     <View style={styles.container}>
       <View style={styles.compassContainer}>
         {/* Compass Dial */}
-        <Animated.View style={[styles.dialWrapper, dialStyle]}>
+        <Animated.View style={[styles.dialWrapper, { transform: [{ rotate: dialRotation }] }]}>
           <Image 
             source={require('../../assets/illustrations/compass_dial.png')} 
             style={styles.dial}
@@ -83,8 +76,8 @@ export const QiblaCompass: React.FC<QiblaCompassProps> = ({ latitude, longitude 
           />
         </Animated.View>
 
-        {/* Qibla Indicator (Kaaba Icon or Needle) */}
-        <Animated.View style={[styles.qiblaWrapper, qiblaStyle]}>
+        {/* Qibla Indicator */}
+        <Animated.View style={[styles.qiblaWrapper, { transform: [{ rotate: qiblaRotation }] }]}>
           <View style={styles.kaabaPointer}>
             <View style={styles.kaabaIcon}>
               <View style={styles.kaabaBox} />
@@ -142,7 +135,7 @@ const styles = StyleSheet.create({
     height: 32,
     backgroundColor: '#1A1A1A',
     borderWidth: 2,
-    borderColor: '#D4AF37', // Gold trim
+    borderColor: '#D4AF37',
     borderRadius: 6,
     shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 0 },

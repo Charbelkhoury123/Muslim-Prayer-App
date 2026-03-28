@@ -14,7 +14,6 @@ import { Button } from '../components/common/Button';
 import { Ionicons } from '@expo/vector-icons';
 import { saveJournalEntry } from '../storage/db';
 import { formatLocalDateKey } from '../utils/date';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 interface JournalFormScreenProps {
@@ -56,15 +55,15 @@ export function JournalFormScreen({ prayerId, prayerName, onClose }: JournalForm
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <Animated.View entering={FadeInUp.duration(600)} style={styles.header}>
+        <View style={styles.header}>
           <View style={styles.iconCircle}>
             <Ionicons name="journal" size={32} color={Colors.white} />
           </View>
           <Text style={styles.title}>{t('journal.reflectOn', { name: prayerName })}</Text>
           <Text style={styles.subtitle}>{t('journal.reflectPrompt')}</Text>
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.inputContainer}>
+        <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder={t('journal.placeholder')}
@@ -74,7 +73,7 @@ export function JournalFormScreen({ prayerId, prayerName, onClose }: JournalForm
             onChangeText={setReflection}
             autoFocus
           />
-        </Animated.View>
+        </View>
 
         <View style={styles.footer}>
           <Button 

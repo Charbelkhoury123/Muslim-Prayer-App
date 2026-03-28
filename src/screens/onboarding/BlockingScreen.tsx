@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme';
 import { OnboardingLayout } from '../../components/Onboarding/OnboardingLayout';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { AppBlockingService } from '../../services/AppBlockingService';
 
 export const BlockingScreen: React.FC<{ onContinue: () => void; onBack: () => void }> = ({ onContinue, onBack }) => {
   return (
@@ -18,15 +18,13 @@ export const BlockingScreen: React.FC<{ onContinue: () => void; onBack: () => vo
       onBack={onBack}
     >
       <View style={styles.container}>
-        <Animated.Text 
-          entering={FadeInDown.duration(600)}
+        <Text 
           style={styles.title}
         >
           Aqimo blocks your apps at prayer time.
-        </Animated.Text>
+        </Text>
 
-        <Animated.View 
-          entering={FadeInDown.delay(100).duration(600)}
+        <View 
           style={styles.illustrationContainer}
         >
           <Image 
@@ -34,16 +32,13 @@ export const BlockingScreen: React.FC<{ onContinue: () => void; onBack: () => vo
             style={styles.illustration}
             resizeMode="contain"
           />
-        </Animated.View>
+        </View>
 
-        <Animated.View 
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.infoContainer}
-        >
+        <View style={styles.infoContainer}>
           <Text style={styles.description}>
             Your apps will be blocked until you confirm "I Prayed."
           </Text>
-        </Animated.View>
+        </View>
       </View>
     </OnboardingLayout>
   );

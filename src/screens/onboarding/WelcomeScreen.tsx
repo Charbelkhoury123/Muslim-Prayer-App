@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../theme';
 import { OnboardingLayout } from '../../components/Onboarding/OnboardingLayout';
 import { useTranslation } from 'react-i18next';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const LANGUAGES = [
   { code: 'en', native: 'English' },
@@ -23,16 +22,16 @@ export const WelcomeScreen: React.FC<{ onContinue: () => void }> = ({ onContinue
   return (
     <OnboardingLayout currentStep={1} totalSteps={5} onContinue={onContinue}>
       <View style={styles.container}>
-        <Animated.Text entering={FadeInDown.duration(600)} style={styles.title}>
+        <Text style={styles.title}>
           {t('onboarding.welcome')}
-        </Animated.Text>
+        </Text>
 
-        <Animated.Text entering={FadeInDown.delay(100).duration(600)} style={styles.subtitle}>
+        <Text style={styles.subtitle}>
           {t('onboarding.subtitle')}
-        </Animated.Text>
+        </Text>
 
         {/* Language Selection */}
-        <Animated.View entering={FadeInDown.delay(200).duration(600)} style={styles.inputGroup}>
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>{t('settings.language')}</Text>
           <View style={styles.row}>
             {LANGUAGES.map(lang => (
@@ -47,10 +46,10 @@ export const WelcomeScreen: React.FC<{ onContinue: () => void }> = ({ onContinue
               </Pressable>
             ))}
           </View>
-        </Animated.View>
+        </View>
 
         {/* Menstruation Question */}
-        <Animated.View entering={FadeInDown.delay(300).duration(600)} style={styles.inputGroup}>
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>
             Do you menstruate?{' '}
             <Text style={styles.labelSub}>(required for hayḍ exception)</Text>
@@ -69,7 +68,7 @@ export const WelcomeScreen: React.FC<{ onContinue: () => void }> = ({ onContinue
               <Text style={[styles.pillText, menstruates === 'no' && styles.pillTextSelected]}>No</Text>
             </Pressable>
           </View>
-        </Animated.View>
+        </View>
       </View>
     </OnboardingLayout>
   );

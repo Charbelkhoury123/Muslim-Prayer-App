@@ -11,10 +11,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { QiblaCompass } from '../components/QiblaCompass';
 import { scheduleAthanNotifications } from '../utils/notifications';
-import Animated, { FadeInUp, Layout } from 'react-native-reanimated';
 import { useAppBlocking } from '../hooks/useAppBlocking';
 import { FocusOverlay } from '../components/FocusOverlay';
 import { JournalFormScreen } from './JournalFormScreen';
+import { JournalListScreen } from './JournalListScreen';
 import { StreakCard } from '../components/StreakCard';
 
 /**
@@ -92,25 +92,19 @@ export function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Qibla Compass Panel */}
         {showCompass && coordinates && (
-          <Animated.View 
-            entering={FadeInUp.duration(600)}
-            style={styles.compassSection}
-          >
+          <View style={styles.compassSection}>
             <QiblaCompass latitude={coordinates.latitude} longitude={coordinates.longitude} />
-          </Animated.View>
+          </View>
         )}
 
         {/* Streak & Rewards Card */}
-        <Animated.View entering={FadeInUp.delay(50)}>
+        <View>
            <StreakCard />
-        </Animated.View>
+        </View>
 
         {/* Next Prayer Countdown Card */}
         {nextPrayer != null && (
-          <Animated.View 
-            entering={FadeInUp.delay(100).duration(600)}
-            style={styles.nextBox}
-          >
+          <View style={styles.nextBox}>
             <View style={styles.nextTextContent}>
               <Text style={styles.nextName}>{t(`prayer.${nextPrayer.id}`)}</Text>
               <Text style={styles.nextCountdown}>{t('prayer.blockingApps')}</Text>
@@ -122,19 +116,18 @@ export function HomeScreen() {
             <View style={styles.nextIllustration}>
               <Ionicons name="lock-closed" size={40} color={Colors.white} opacity={0.3} />
             </View>
-          </Animated.View>
+          </View>
         )}
 
         {/* Quote/Ayah */}
-        <Animated.View 
-          entering={FadeInUp.delay(200).duration(600)}
+        <View 
           style={styles.quoteCard}
         >
           <Text style={styles.quoteText}>
             "Establish prayer for my remembrance."
           </Text>
           <Text style={styles.quoteSource}>— Qur'an 20:14</Text>
-        </Animated.View>
+        </View>
 
         {/* Daily Prayer List */}
         <View style={styles.prayerList}>
@@ -147,10 +140,8 @@ export function HomeScreen() {
                           prayerTimes.isha;
              
              return (
-               <Animated.View 
+               <View 
                  key={id}
-                 entering={FadeInUp.delay(300 + index * 100).duration(600)}
-                 layout={Layout.springify()}
                >
                  <Pressable
                    style={[styles.prayerRow, isCompleted && styles.prayerRowActive]}
@@ -173,7 +164,7 @@ export function HomeScreen() {
                       {t(`prayer.${id}`)} {/* Use t for Arabic translation instead of inline */}
                    </Text>
                  </Pressable>
-               </Animated.View>
+               </View>
              );
           })}
         </View>

@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import './src/i18n';
+import { initDB } from './src/storage/db';
+
+// Initialize SQLite database on startup
+initDB().catch(console.error);
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';

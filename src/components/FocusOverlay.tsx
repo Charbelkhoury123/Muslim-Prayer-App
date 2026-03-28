@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Colors } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut, SlideInDown } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 import { QiblaCompass } from './QiblaCompass';
@@ -32,7 +31,7 @@ export const FocusOverlay: React.FC<FocusOverlayProps> = ({
   const { coordinates } = useAppStore();
 
   return (
-    <Modal transparent animationType="none" visible>
+    <Modal transparent animationType="fade" visible>
        <View style={styles.overlay}>
          <BlurView intensity={95} tint="dark" style={StyleSheet.absoluteFill} />
          
@@ -41,10 +40,7 @@ export const FocusOverlay: React.FC<FocusOverlayProps> = ({
              contentContainerStyle={styles.scrollContent}
              showsVerticalScrollIndicator={false}
            >
-             <Animated.View 
-               entering={FadeIn.duration(800)} 
-               style={styles.inner}
-             >
+             <View style={styles.inner}>
                <View style={styles.iconContainer}>
                  <Ionicons name="notifications-outline" size={40} color={Colors.accent} />
                </View>
@@ -68,7 +64,7 @@ export const FocusOverlay: React.FC<FocusOverlayProps> = ({
                <Text style={styles.quoteSource}>— Surah Taha 20:14</Text>
 
                <View style={styles.footer}>
-                 <Animated.View entering={SlideInDown.delay(300)} style={styles.buttonWrapper}>
+                 <View style={styles.buttonWrapper}>
                    <Pressable 
                      style={styles.button} 
                      onPress={onComplete}
@@ -82,14 +78,14 @@ export const FocusOverlay: React.FC<FocusOverlayProps> = ({
                    >
                      <Text style={styles.secondaryButtonText}>{t('prayer.iMissed')}</Text>
                    </Pressable>
-                 </Animated.View>
+                 </View>
                  
                  <Text style={styles.muted}>
                    {t('prayer.blockingApps')} is currently active.
                    {'\n'}Unlocks only after confirmation.
                  </Text>
                </View>
-             </Animated.View>
+             </View>
            </ScrollView>
          </SafeAreaView>
        </View>

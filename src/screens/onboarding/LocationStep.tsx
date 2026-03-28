@@ -12,7 +12,6 @@ import * as Location from 'expo-location';
 import { useAppStore } from '../../store/useAppStore';
 import { Button } from '../../components/common/Button';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export const LocationStep: React.FC<{ onContinue: () => void; onBack: () => void }> = ({ onContinue, onBack }) => {
   const { setLocation, coordinates } = useAppStore();
@@ -21,21 +20,37 @@ export const LocationStep: React.FC<{ onContinue: () => void; onBack: () => void
   const requestGPS = async () => {
     setLoading(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Please enable location permissions in settings or handle it manually.');
+      // First check if permissions were already granted
+      const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      // Only request if not already granted
+      if (existingStatus !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        Alert.alert(
+          'Permission denied', 
+          'Location is required for the compass and offline prayer times. Please enable it in your phone settings for Expo Go.'
+        );
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      
       setLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-      // Continue automatically if GPS success
-      onContinue();
+      
+      // Automatic proceed on success
+      setTimeout(onContinue, 1000);
     } catch (error) {
-       Alert.alert('Error', 'Could not get your location. Please try again or skip.');
+       Alert.alert('Error', 'Could not get your location. Please check your GPS or skip for now.');
     } finally {
       setLoading(false);
     }
@@ -45,33 +60,30 @@ export const LocationStep: React.FC<{ onContinue: () => void; onBack: () => void
     <OnboardingLayout 
       currentStep={3} 
       totalSteps={5} 
-      onContinue={coordinates ? onContinue : () => {}}
+      onContinue={onContinue} // Button is now always clickable to avoid being stuck
       onBack={onBack}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Animated.View entering={FadeInDown.duration(600)}>
+        <View>
           <Text style={styles.title}>Where are you?</Text>
           <Text style={styles.subtitle}>
             To calculate prayer times accurately and offline, we need your location.
           </Text>
-        </Animated.View>
+        </View>
 
-        <Animated.View 
-          entering={FadeInDown.delay(200).duration(600)}
-          style={styles.illustration}
-        >
+        <View style={styles.illustration}>
           <View style={styles.iconCircle}>
             <Ionicons name="location" size={48} color={Colors.white} />
           </View>
-        </Animated.View>
+        </View>
 
         {coordinates ? (
-          <Animated.View entering={FadeInDown} style={styles.successBox}>
+          <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
             <Text style={styles.successText}>Location received: {coordinates.latitude.toFixed(4)}, {coordinates.longitude.toFixed(4)}</Text>
-          </Animated.View>
+          </View>
         ) : (
-          <Animated.View entering={FadeInDown.delay(400)} style={styles.actions}>
+          <View style={styles.actions}>
             <Button 
               title={loading ? "Getting location..." : "Use My Current Location"} 
               onPress={requestGPS} 
@@ -80,8 +92,9 @@ export const LocationStep: React.FC<{ onContinue: () => void; onBack: () => void
             />
             <Text style={styles.disclaimer}>
                We never share your location data. Calculation is done entirely on your device.
+               {'\n\n'}You can skip this and add it later in Settings.
             </Text>
-          </Animated.View>
+          </View>
         )}
       </ScrollView>
     </OnboardingLayout>

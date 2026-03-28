@@ -6,4 +6,5 @@ import App from './App';
 // Initialize SQLite database on startup
 initDB().catch(console.error);
 
+// Register the root component
 registerRootComponent(App);

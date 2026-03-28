@@ -11,7 +11,6 @@ import {
 import { Colors } from '../theme';
 import { Brand } from '../config/brand';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 
 export function AboutScreen() {
   const openLink = (url: string) => Linking.openURL(url);
@@ -20,26 +19,26 @@ export function AboutScreen() {
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Brand Identity */}
-        <Animated.View entering={FadeInUp.duration(600)} style={styles.brandSection}>
+        <View style={styles.brandSection}>
           <View style={styles.logoCircle}>
             <Ionicons name="moon" size={40} color={Colors.white} />
           </View>
           <Text style={styles.brandName}>{Brand.name}</Text>
           <Text style={styles.brandTagline}>{Brand.tagline}</Text>
           <Text style={styles.brandArabic}>{Brand.arabicName}</Text>
-        </Animated.View>
+        </View>
 
         {/* Mission */}
-        <Animated.View entering={FadeInUp.delay(100)} style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Our Mission</Text>
           <Text style={styles.cardText}>
             {Brand.name} exists to help Muslims stay consistent with their daily prayers by reducing digital
             distractions. We believe that when the phone goes silent, the soul speaks louder.
           </Text>
-        </Animated.View>
+        </View>
 
         {/* How It Works */}
-        <Animated.View entering={FadeInUp.delay(200)} style={styles.card}>
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>How It Works</Text>
           <View style={styles.step}>
             <View style={styles.stepIcon}><Ionicons name="location" size={20} color={Colors.primary} /></View>
@@ -62,10 +61,10 @@ export function AboutScreen() {
               <Text style={styles.stepDesc}>Missed a prayer? Record a reflection to build awareness.</Text>
             </View>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Links */}
-        <Animated.View entering={FadeInUp.delay(300)} style={styles.linksCard}>
+        <View style={styles.linksCard}>
           <Pressable style={styles.linkRow} onPress={() => openLink(`mailto:${Brand.supportEmail}`)}>
             <Ionicons name="mail-outline" size={20} color={Colors.primary} />
             <Text style={styles.linkText}>Contact Support</Text>
@@ -83,7 +82,7 @@ export function AboutScreen() {
             <Text style={styles.linkText}>Terms of Service</Text>
             <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
           </Pressable>
-        </Animated.View>
+        </View>
 
         {/* Footer */}
         <View style={styles.footer}>

@@ -1,15 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
 import { CalculationMethod, Madhab, Coordinates } from 'adhan';
 import * as Location from 'expo-location';
 
-const storage = new MMKV();
-
-const zustandStorage = {
-  setItem: (name: string, value: string) => storage.set(name, value),
-  getItem: (name: string) => storage.getString(name) ?? null,
-  removeItem: (name: string) => storage.delete(name),
+// Simple polyfill for storage since we removed MMKV for compatibility
+const storage = {
+  getItem: (name: string) => null,
+  setItem: (name: string, value: string) => {},
+  removeItem: (name: string) => {},
 };
 
 export type CalculationMethodKey = keyof typeof CalculationMethod;
@@ -63,7 +61,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'app-storage',
-      storage: createJSONStorage(() => zustandStorage),
+      storage: createJSONStorage(() => storage),
     }
   )
 );

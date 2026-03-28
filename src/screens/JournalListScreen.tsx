@@ -10,7 +10,6 @@ import {
 import { Colors } from '../theme';
 import { getJournalEntries, type JournalEntry } from '../storage/db';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 
 export function JournalListScreen() {
@@ -59,8 +58,7 @@ export function JournalListScreen() {
           </View>
         }
         renderItem={({ item, index }) => (
-          <Animated.View 
-            entering={FadeInUp.delay(index * 50).duration(600)}
+          <View 
             style={styles.entryCard}
           >
             <View style={styles.entryHeader}>
@@ -68,7 +66,7 @@ export function JournalListScreen() {
               <Text style={styles.entryDate}>{new Date(item.timestamp).toLocaleDateString()}</Text>
             </View>
             <Text style={styles.entryText}>{item.reflection}</Text>
-          </Animated.View>
+          </View>
         )}
       />
     </SafeAreaView>
