@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import './src/i18n';
 import { initDB } from './src/storage/db';
-
-// Initialize SQLite database on startup
 initDB().catch(console.error);
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { Pressable, Platform, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { OnboardingScreen } from './src/screens/onboarding/OnboardingScreen';
@@ -16,6 +15,19 @@ import { Colors } from './src/theme';
 import { JournalListScreen } from './src/screens/JournalListScreen';
 
 type Tab = 'home' | 'journal' | 'settings';
+
+interface TabItem {
+  id: Tab;
+  labelKey: string;
+  icon: string;
+  iconActive: string;
+}
+
+const TABS: TabItem[] = [
+  { id: 'home', labelKey: 'tab.times', icon: 'time-outline', iconActive: 'time' },
+  { id: 'journal', labelKey: 'tab.journal', icon: 'book-outline', iconActive: 'book' },
+  { id: 'settings', labelKey: 'tab.settings', icon: 'settings-outline', iconActive: 'settings' },
+];
 
 export default function App() {
   const { hasOnboarded, setOnboarded } = useAppStore();
@@ -41,52 +53,32 @@ export default function App() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.content}>
-        {renderContent()}
-      </View>
+      <View style={styles.content}>{renderContent()}</View>
 
-      <View style={styles.tabBar}>
-        <Pressable
-          style={[styles.tab, tab === 'home' && styles.tabActive]}
-          onPress={() => setTab('home')}
-        >
-          <Ionicons 
-            name={tab === 'home' ? "time" : "time-outline"} 
-            size={24} 
-            color={tab === 'home' ? Colors.white : Colors.textLight} 
-          />
-          <Text style={[styles.tabText, tab === 'home' && styles.tabTextActive]}>
-            {t('tab.times')}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.tab, tab === 'journal' && styles.tabActive]}
-          onPress={() => setTab('journal')}
-        >
-          <Ionicons 
-            name={tab === 'journal' ? "book" : "book-outline"} 
-            size={24} 
-            color={tab === 'journal' ? Colors.white : Colors.textLight} 
-          />
-          <Text style={[styles.tabText, tab === 'journal' && styles.tabTextActive]}>
-            {t('tab.journal')}
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.tab, tab === 'settings' && styles.tabActive]}
-          onPress={() => setTab('settings')}
-        >
-          <Ionicons 
-            name={tab === 'settings' ? "settings" : "settings-outline"} 
-            size={24} 
-            color={tab === 'settings' ? Colors.white : Colors.textLight} 
-          />
-          <Text style={[styles.tabText, tab === 'settings' && styles.tabTextActive]}>
-            {t('tab.settings')}
-          </Text>
-        </Pressable>
+      <View style={styles.tabBarWrapper}>
+        <View style={styles.tabBar}>
+          {TABS.map(item => {
+            const isActive = tab === item.id;
+            return (
+              <Pressable
+                key={item.id}
+                style={styles.tab}
+                onPress={() => setTab(item.id)}
+              >
+                <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
+                  <Ionicons
+                    name={(isActive ? item.iconActive : item.icon) as any}
+                    size={22}
+                    color={isActive ? Colors.white : Colors.textMuted}
+                  />
+                </View>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {t(item.labelKey)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <StatusBar style="dark" />
@@ -94,6 +86,7 @@ export default function App() {
   );
 }
 
+const TAB_BOTTOM = Platform.OS === 'web' ? 34 : 28;
 
 const styles = StyleSheet.create({
   root: {
@@ -107,35 +100,48 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  tabBarWrapper: {
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingBottom: TAB_BOTTOM,
+    paddingTop: 8,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
-    paddingHorizontal: 16,
-    paddingBottom: 30, // For home indicator
-    paddingTop: 12,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    justifyContent: 'space-around',
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
+    gap: 4,
+    paddingVertical: 4,
   },
-  tabActive: {
+  tabIconWrap: {
+    width: 44,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabIconWrapActive: {
     backgroundColor: Colors.primary,
   },
-  tabText: {
-    color: Colors.textLight,
-    fontSize: 16,
-    fontWeight: '600',
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: Colors.textMuted,
+    letterSpacing: 0.2,
   },
-  tabTextActive: {
-    color: Colors.white,
+  tabLabelActive: {
+    color: Colors.primary,
+    fontWeight: '700',
   },
 });

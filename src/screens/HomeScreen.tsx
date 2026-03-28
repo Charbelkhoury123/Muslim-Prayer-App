@@ -1,5 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, SafeAreaView } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Animated,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  SafeAreaView,
+} from 'react-native';
 import { OBLIGATORY_PRAYER_IDS, type ObligatoryPrayerId } from '../types/prayer';
 import { usePrayerLog } from '../hooks/usePrayerLog';
 import { useAppStore } from '../store/useAppStore';
@@ -14,18 +23,85 @@ import { scheduleAthanNotifications } from '../utils/notifications';
 import { useAppBlocking } from '../hooks/useAppBlocking';
 import { FocusOverlay } from '../components/FocusOverlay';
 import { JournalFormScreen } from './JournalFormScreen';
-import { JournalListScreen } from './JournalListScreen';
 import { StreakCard } from '../components/StreakCard';
 
-/**
- * Format date to local time string (e.g. 5:45 AM)
- */
 function fmtTime(d: Date | null) {
   if (!d) return '--:--';
-  return d.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+const ARABIC_NAMES: Record<string, string> = {
+  fajr: 'الفجر',
+  dhuhr: 'الظهر',
+  asr: 'العصر',
+  maghrib: 'المغرب',
+  isha: 'العشاء',
+};
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'Good Morning';
+  if (h >= 12 && h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+function getPrayerTimeById(prayerTimes: any, id: ObligatoryPrayerId): Date | null {
+  if (!prayerTimes) return null;
+  const map: Record<string, Date | null> = {
+    fajr: prayerTimes.fajr ?? null,
+    dhuhr: prayerTimes.dhuhr ?? null,
+    asr: prayerTimes.asr ?? null,
+    maghrib: prayerTimes.maghrib ?? null,
+    isha: prayerTimes.isha ?? null,
+  };
+  return map[id] ?? null;
+}
+
+interface PrayerRowProps {
+  id: ObligatoryPrayerId;
+  isCompleted: boolean;
+  time: Date | null;
+  prayerName: string;
+  onToggle: () => void;
+}
+
+function PrayerRow({ id, isCompleted, time, prayerName, onToggle }: PrayerRowProps) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 0.97, duration: 70, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 350 }),
+    ]).start();
+    onToggle();
+  };
+
+  return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <Pressable
+        style={[styles.prayerRow, isCompleted && styles.prayerRowDone]}
+        onPress={handlePress}
+      >
+        <View style={styles.prayerLeft}>
+          <View style={[styles.checkCircle, isCompleted && styles.checkCircleDone]}>
+            {isCompleted && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+          </View>
+          <View>
+            <Text style={[styles.prayerName, isCompleted && styles.textDone]}>
+              {prayerName}
+            </Text>
+            <Text style={[styles.prayerTime, isCompleted && styles.timeDone]}>
+              {isCompleted ? 'Prayed' : fmtTime(time)}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.arabicName, isCompleted && styles.arabicDone]}>
+          {ARABIC_NAMES[id]}
+        </Text>
+      </Pressable>
+    </Animated.View>
+  );
 }
 
 export function HomeScreen() {
@@ -34,19 +110,19 @@ export function HomeScreen() {
   const [showCompass, setShowCompass] = useState(false);
   const [now, setNow] = useState(new Date());
   const [showJournal, setShowJournal] = useState(false);
-  const [journalPrayer, setJournalPrayer] = useState<{ id: string, label: string } | null>(null);
+  const [journalPrayer, setJournalPrayer] = useState<{ id: string; label: string } | null>(null);
 
-  const prayerTimes = coordinates 
+  const prayerTimes = coordinates
     ? getPrayerTimesForDate(new Date(), coordinates, calculationMethod, madhab)
     : null;
 
   const nextPrayer = prayerTimes ? getNextPrayerBrief(prayerTimes, now) : null;
-  const msUntilNext = nextPrayer?.at 
-    ? Math.max(0, nextPrayer.at.getTime() - now.getTime()) 
-    : null;
+  const msUntilNext = nextPrayer?.at ? Math.max(0, nextPrayer.at.getTime() - now.getTime()) : null;
 
   const { todayLog, setCompleted } = usePrayerLog();
   const activeFocus = useAppBlocking();
+
+  const completedCount = OBLIGATORY_PRAYER_IDS.filter(id => todayLog[id]).length;
 
   const handleMissed = () => {
     if (activeFocus) {
@@ -55,128 +131,131 @@ export function HomeScreen() {
     }
   };
 
-  // Update clock every minute
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 
-  // Sync notifications when basic settings change
   useEffect(() => {
     if (notificationsEnabled && prayerTimes) {
-      // Cast is needed because our types are slightly differently structured than legacy ones
       scheduleAthanNotifications(prayerTimes as any);
     }
   }, [notificationsEnabled, prayerTimes]);
 
   const handleToggle = (id: ObligatoryPrayerId, current: boolean) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCompleted(id, !current);
   };
+
+  const todayStr = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const headerPaddingTop = Platform.OS === 'web' ? 67 : 0;
 
   return (
     <SafeAreaView style={styles.screen}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerPaddingTop }]}>
         <View>
-          <Text style={styles.headerTitle}>aqimo</Text>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.dateStr}>{todayStr}</Text>
         </View>
-        <View style={styles.headerActions}>
-          <Pressable onPress={() => setShowCompass(!showCompass)} style={styles.headerIconButton}>
-            <Ionicons name={showCompass ? "compass" : "compass-outline"} size={24} color={Colors.primary} />
-          </Pressable>
-          <Ionicons name="share-outline" size={24} color={Colors.primary} />
-        </View>
+        <Pressable
+          onPress={() => setShowCompass(!showCompass)}
+          style={[styles.compassBtn, showCompass && styles.compassBtnActive]}
+        >
+          <Ionicons
+            name={showCompass ? 'compass' : 'compass-outline'}
+            size={22}
+            color={showCompass ? Colors.white : Colors.primary}
+          />
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Qibla Compass Panel */}
+        {/* Qibla Compass */}
         {showCompass && coordinates && (
-          <View style={styles.compassSection}>
+          <View style={styles.compassCard}>
             <QiblaCompass latitude={coordinates.latitude} longitude={coordinates.longitude} />
           </View>
         )}
 
-        {/* Streak & Rewards Card */}
-        <View>
-           <StreakCard />
-        </View>
+        {/* Streak */}
+        <StreakCard />
 
-        {/* Next Prayer Countdown Card */}
+        {/* Next Prayer */}
         {nextPrayer != null && (
-          <View style={styles.nextBox}>
-            <View style={styles.nextTextContent}>
+          <View style={styles.nextCard}>
+            <View style={styles.nextLeft}>
+              <Text style={styles.nextLabel}>NEXT PRAYER</Text>
               <Text style={styles.nextName}>{t(`prayer.${nextPrayer.id}`)}</Text>
-              <Text style={styles.nextCountdown}>{t('prayer.blockingApps')}</Text>
-              <Text style={styles.nextCountdownTime}>
-                 {msUntilNext != null ? formatDurationMs(msUntilNext) : '--'}
-              </Text>
-              <Text style={styles.nextAt}>{fmtTime(nextPrayer.at)}</Text>
+              <Text style={styles.nextArabic}>{ARABIC_NAMES[nextPrayer.id] ?? ''}</Text>
+              <View style={styles.nextTimeRow}>
+                <Ionicons name="time-outline" size={13} color="rgba(245,242,230,0.55)" />
+                <Text style={styles.nextAt}> {fmtTime(nextPrayer.at)}</Text>
+              </View>
             </View>
-            <View style={styles.nextIllustration}>
-              <Ionicons name="lock-closed" size={40} color={Colors.white} opacity={0.3} />
+            <View style={styles.nextRight}>
+              <Text style={styles.nextIn}>in</Text>
+              <Text style={styles.nextCountdown}>
+                {msUntilNext != null ? formatDurationMs(msUntilNext) : '--'}
+              </Text>
             </View>
           </View>
         )}
 
-        {/* Quote/Ayah */}
-        <View 
-          style={styles.quoteCard}
-        >
-          <Text style={styles.quoteText}>
-            "Establish prayer for my remembrance."
-          </Text>
-          <Text style={styles.quoteSource}>— Qur'an 20:14</Text>
+        {/* Section: Today's Prayers */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Today's Prayers</Text>
+          <View style={styles.progressRow}>
+            {OBLIGATORY_PRAYER_IDS.map(id => (
+              <View
+                key={id}
+                style={[styles.progressDot, todayLog[id] && styles.progressDotDone]}
+              />
+            ))}
+            <Text style={styles.progressCount}>{completedCount}/5</Text>
+          </View>
         </View>
 
-        {/* Daily Prayer List */}
         <View style={styles.prayerList}>
-          {prayerTimes && OBLIGATORY_PRAYER_IDS.map((id, index) => {
-             const isCompleted = todayLog[id];
-             const time = id === 'fajr' ? prayerTimes.fajr : 
-                          id === 'dhuhr' ? prayerTimes.dhuhr :
-                          id === 'asr' ? prayerTimes.asr :
-                          id === 'maghrib' ? prayerTimes.maghrib :
-                          prayerTimes.isha;
-             
-             return (
-               <View 
-                 key={id}
-               >
-                 <Pressable
-                   style={[styles.prayerRow, isCompleted && styles.prayerRowActive]}
-                   onPress={() => handleToggle(id, isCompleted)}
-                 >
-                   <View style={styles.prayerRowLeft}>
-                      <View style={[styles.checkCircle, isCompleted && styles.checkCircleActive]}>
-                         {isCompleted && <Ionicons name="checkmark" size={16} color={Colors.white} />}
-                      </View>
-                      <View>
-                        <Text style={[styles.prayerName, isCompleted && styles.prayerTextActive]}>
-                           {t(`prayer.${id}`)}
-                        </Text>
-                        <Text style={[styles.prayerStatus, isCompleted && styles.prayerTextActive]}>
-                           {isCompleted ? 'Completed' : fmtTime(time)}
-                        </Text>
-                      </View>
-                   </View>
-                   <Text style={[styles.arabicLabel, isCompleted && styles.prayerTextActive]}>
-                      {t(`prayer.${id}`)} {/* Use t for Arabic translation instead of inline */}
-                   </Text>
-                 </Pressable>
-               </View>
-             );
-          })}
+          {OBLIGATORY_PRAYER_IDS.map(id => (
+            <PrayerRow
+              key={id}
+              id={id}
+              isCompleted={todayLog[id]}
+              time={getPrayerTimeById(prayerTimes, id)}
+              prayerName={t(`prayer.${id}`)}
+              onToggle={() => handleToggle(id, todayLog[id])}
+            />
+          ))}
         </View>
 
         {!coordinates && (
-           <Text style={styles.muted}>Please set your location in Settings to see prayer times.</Text>
+          <View style={styles.noLocationCard}>
+            <Ionicons name="location-outline" size={18} color={Colors.textMuted} />
+            <Text style={styles.noLocationText}>
+              Set your location in Settings to see prayer times.
+            </Text>
+          </View>
         )}
+
+        {/* Quote */}
+        <View style={styles.quoteSection}>
+          <View style={styles.quoteMark}>
+            <Text style={styles.quoteMarkText}>"</Text>
+          </View>
+          <Text style={styles.quoteText}>
+            Establish prayer for my remembrance.
+          </Text>
+          <Text style={styles.quoteSource}>— Qur'an 20:14</Text>
+        </View>
       </ScrollView>
 
-      {/* Full-screen focus overlay if a prayer session is active */}
       {activeFocus && !showJournal && (
-        <FocusOverlay 
+        <FocusOverlay
           prayerName={activeFocus.label}
           msRemaining={activeFocus.msRemaining}
           onComplete={() => handleToggle(activeFocus.id as ObligatoryPrayerId, false)}
@@ -184,13 +263,12 @@ export function HomeScreen() {
         />
       )}
 
-      {/* Journal Reflection Screen */}
       {showJournal && journalPrayer && (
         <View style={StyleSheet.absoluteFill}>
-          <JournalFormScreen 
-             prayerId={journalPrayer.id}
-             prayerName={journalPrayer.label}
-             onClose={() => setShowJournal(false)}
+          <JournalFormScreen
+            prayerId={journalPrayer.id}
+            prayerName={journalPrayer.label}
+            onClose={() => setShowJournal(false)}
           />
         </View>
       )}
@@ -207,163 +285,250 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
   },
-  headerTitle: {
-    fontSize: 24,
+  greeting: {
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.primary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+  dateStr: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    fontWeight: '500',
+    marginTop: 2,
   },
-  headerIconButton: {
-    padding: 4,
-  },
-  compassSection: {
-    alignItems: 'center',
-    marginBottom: 24,
-    backgroundColor: Colors.white,
-    padding: 24,
+  compassBtn: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.inactive,
+  },
+  compassBtnActive: {
+    backgroundColor: Colors.primary,
   },
   scroll: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
-  nextBox: {
+  compassCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  nextCard: {
     backgroundColor: Colors.primary,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
     elevation: 8,
   },
-  nextTextContent: {
+  nextLeft: {
     flex: 1,
   },
+  nextLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(245,242,230,0.5)',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
   nextName: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 30,
+    fontWeight: '800',
     color: Colors.white,
+    letterSpacing: -0.5,
   },
-  nextCountdown: {
-    fontSize: 14,
-    color: Colors.white,
-    opacity: 0.7,
-    marginTop: 4,
+  nextArabic: {
+    fontSize: 20,
+    color: 'rgba(245,242,230,0.45)',
+    marginTop: 2,
+    marginBottom: 10,
+    fontWeight: '400',
   },
-  nextCountdownTime: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.white,
-    marginTop: 4,
+  nextTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   nextAt: {
-    fontSize: 16,
+    fontSize: 13,
+    color: 'rgba(245,242,230,0.55)',
+    fontWeight: '500',
+  },
+  nextRight: {
+    alignItems: 'flex-end',
+  },
+  nextIn: {
+    fontSize: 12,
+    color: 'rgba(245,242,230,0.45)',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  nextCountdown: {
+    fontSize: 22,
+    fontWeight: '700',
     color: Colors.white,
-    opacity: 0.6,
-    marginTop: 8,
+    letterSpacing: -0.5,
   },
-  nextIllustration: {
-    width: 60,
-    height: 60,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 30,
+  sectionRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
-  quoteCard: {
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  progressRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
-    paddingHorizontal: 20,
+    gap: 5,
   },
-  quoteText: {
-    fontSize: 18,
-    fontStyle: 'italic',
-    color: Colors.text,
-    textAlign: 'center',
-    opacity: 0.8,
-    lineHeight: 26,
+  progressDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.inactive,
   },
-  quoteSource: {
-    fontSize: 14,
-    color: Colors.textLight,
-    marginTop: 8,
+  progressDotDone: {
+    backgroundColor: Colors.accentDark,
+  },
+  progressCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textMuted,
+    marginLeft: 4,
   },
   prayerList: {
-    gap: 16,
+    gap: 10,
+    marginBottom: 32,
   },
   prayerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    padding: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
+    borderColor: Colors.border,
   },
-  prayerRowActive: {
+  prayerRowDone: {
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  prayerRowLeft: {
+  prayerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
   },
   checkCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
     borderColor: Colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkCircleActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderColor: Colors.white,
+  checkCircleDone: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.4)',
   },
   prayerName: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
     color: Colors.primary,
   },
-  prayerStatus: {
-    fontSize: 14,
-    color: Colors.textLight,
-    marginTop: 2,
+  prayerTime: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    marginTop: 1,
+    fontWeight: '500',
   },
-  prayerTextActive: {
+  textDone: {
     color: Colors.white,
   },
-  arabicLabel: {
-    fontSize: 24,
+  timeDone: {
+    color: 'rgba(255,255,255,0.6)',
+  },
+  arabicName: {
+    fontSize: 22,
     color: Colors.primary,
-    opacity: 0.2,
+    opacity: 0.18,
     fontWeight: '400',
   },
-  muted: {
+  arabicDone: {
+    color: Colors.white,
+    opacity: 0.35,
+  },
+  noLocationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.surfaceWarm,
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  noLocationText: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textLight,
+    lineHeight: 20,
+  },
+  quoteSection: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  quoteMark: {
+    marginBottom: 4,
+  },
+  quoteMarkText: {
+    fontSize: 48,
+    color: Colors.accent,
+    lineHeight: 40,
+    fontWeight: '700',
+    opacity: 0.6,
+  },
+  quoteText: {
+    fontSize: 16,
+    fontStyle: 'italic',
     color: Colors.textLight,
     textAlign: 'center',
-    marginTop: 40,
-    fontSize: 16,
+    lineHeight: 26,
+  },
+  quoteSource: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
