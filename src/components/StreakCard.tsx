@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { getCurrentStreak } from '../storage/prayerLog';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ export function StreakCard() {
   const nextMilestone = streak < 7 ? 7 : streak < 30 ? 30 : streak < 100 ? 100 : streak + 10;
   const targetProgress = Math.min(streak / nextMilestone, 1);
   const remaining = nextMilestone - streak;
+  const isActive = streak > 0;
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [barWidth, setBarWidth] = useState(300);
@@ -18,8 +19,8 @@ export function StreakCard() {
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: targetProgress,
-      duration: 1000,
-      delay: 400,
+      duration: 1100,
+      delay: 600,
       useNativeDriver: false,
     }).start();
   }, []);
@@ -29,28 +30,25 @@ export function StreakCard() {
     outputRange: [0, barWidth],
   });
 
-  const isActive = streak > 0;
-
   return (
     <View style={styles.card}>
       <View style={styles.top}>
         <View style={styles.streakBlock}>
           <Text style={styles.streakNum}>{streak}</Text>
           <View style={styles.streakLabelRow}>
-            <Text style={styles.streakLabel}>
-              {streak === 1 ? 'DAY' : 'DAYS'}
-            </Text>
+            <Text style={styles.streakDaysLabel}>{streak === 1 ? 'DAY' : 'DAYS'}</Text>
             <Text style={styles.streakSub}> streak</Text>
           </View>
         </View>
+
         <View style={[styles.flameBadge, isActive && styles.flameBadgeActive]}>
           <Ionicons
             name="flame"
-            size={28}
-            color={isActive ? Colors.gold : Colors.inactive}
+            size={26}
+            color={isActive ? Colors.gold : Colors.textMuted}
           />
           {isActive && (
-            <Text style={styles.flameStreak}>{streak}</Text>
+            <Text style={styles.flameCt}>{streak}</Text>
           )}
         </View>
       </View>
@@ -74,7 +72,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 18,
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: '#000',
@@ -93,31 +91,31 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   streakNum: {
-    fontSize: 44,
-    fontWeight: '800',
+    fontSize: 46,
     color: Colors.primary,
-    letterSpacing: -1,
-    lineHeight: 48,
+    letterSpacing: -2,
+    lineHeight: 50,
+    fontFamily: Fonts.extrabold,
   },
   streakLabelRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
-  streakLabel: {
+  streakDaysLabel: {
     fontSize: 11,
-    fontWeight: '700',
     color: Colors.primary,
-    letterSpacing: 2,
+    letterSpacing: 2.5,
+    fontFamily: Fonts.extrabold,
   },
   streakSub: {
     fontSize: 11,
     color: Colors.textMuted,
-    fontWeight: '500',
+    fontFamily: Fonts.semibold,
   },
   flameBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: Colors.backgroundAlt,
     alignItems: 'center',
     justifyContent: 'center',
@@ -125,17 +123,17 @@ const styles = StyleSheet.create({
   flameBadgeActive: {
     backgroundColor: Colors.goldLight,
   },
-  flameStreak: {
+  flameCt: {
     position: 'absolute',
-    bottom: 6,
-    right: 6,
+    bottom: 5,
+    right: 5,
     fontSize: 9,
-    fontWeight: '800',
     color: Colors.gold,
     backgroundColor: Colors.white,
     borderRadius: 6,
     paddingHorizontal: 3,
     overflow: 'hidden',
+    fontFamily: Fonts.extrabold,
   },
   progressBg: {
     height: 6,
@@ -152,6 +150,6 @@ const styles = StyleSheet.create({
   milestoneText: {
     fontSize: 12,
     color: Colors.textMuted,
-    fontWeight: '500',
+    fontFamily: Fonts.semibold,
   },
 });

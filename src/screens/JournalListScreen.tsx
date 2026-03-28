@@ -8,7 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
 import { getJournalEntries, type JournalEntry } from '../storage/db';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -35,18 +35,13 @@ function formatRelativeDate(timestamp: number): string {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  const isToday =
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+  const sameDay = (a: Date, b: Date) =>
+    a.getDate() === b.getDate() &&
+    a.getMonth() === b.getMonth() &&
+    a.getFullYear() === b.getFullYear();
 
-  const isYesterday =
-    date.getDate() === yesterday.getDate() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getFullYear() === yesterday.getFullYear();
-
-  if (isToday) return 'Today';
-  if (isYesterday) return 'Yesterday';
+  if (sameDay(date, today)) return 'Today';
+  if (sameDay(date, yesterday)) return 'Yesterday';
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
@@ -64,7 +59,7 @@ function JournalEntryCard({ item }: { item: JournalEntry }) {
       <View style={[styles.cardAccent, { backgroundColor: color }]} />
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
-          <View style={[styles.prayerBadge, { backgroundColor: color + '22' }]}>
+          <View style={[styles.prayerBadge, { backgroundColor: color + '20' }]}>
             <Text style={[styles.prayerBadgeText, { color }]}>{label}</Text>
           </View>
           <View style={styles.dateBlock}>
@@ -130,7 +125,7 @@ export function JournalListScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="book-outline" size={32} color={Colors.textMuted} />
+              <Ionicons name="book-outline" size={28} color={Colors.textMuted} />
             </View>
             <Text style={styles.emptyTitle}>{t('journal.emptyTitle')}</Text>
             <Text style={styles.emptyText}>{t('journal.emptyDesc')}</Text>
@@ -160,15 +155,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: Colors.primary,
     letterSpacing: -0.3,
+    fontFamily: Fonts.extrabold,
   },
   headerSub: {
     fontSize: 13,
     color: Colors.textMuted,
-    fontWeight: '500',
     marginTop: 2,
+    fontFamily: Fonts.semibold,
   },
   headerIcon: {
     width: 40,
@@ -217,26 +212,28 @@ const styles = StyleSheet.create({
   },
   prayerBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
     letterSpacing: 0.3,
+    fontFamily: Fonts.bold,
   },
   dateBlock: {
     alignItems: 'flex-end',
   },
   dateRelative: {
     fontSize: 12,
-    fontWeight: '600',
     color: Colors.textLight,
+    fontFamily: Fonts.semibold,
   },
   dateTime: {
     fontSize: 11,
     color: Colors.textMuted,
     marginTop: 1,
+    fontFamily: Fonts.regular,
   },
   reflectionText: {
     fontSize: 15,
     color: Colors.text,
     lineHeight: 23,
+    fontFamily: Fonts.regular,
   },
   empty: {
     alignItems: 'center',
@@ -254,14 +251,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   emptyTitle: {
-    fontWeight: '700',
     fontSize: 18,
     color: Colors.primary,
+    fontFamily: Fonts.bold,
   },
   emptyText: {
     textAlign: 'center',
     color: Colors.textMuted,
     lineHeight: 20,
     fontSize: 14,
+    fontFamily: Fonts.regular,
   },
 });

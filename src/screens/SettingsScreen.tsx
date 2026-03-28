@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Madhab } from 'adhan';
 import * as Haptics from 'expo-haptics';
@@ -88,10 +88,9 @@ export function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Language */}
         <Text style={styles.sectionLabel}>{t('settings.language')}</Text>
         <View style={styles.card}>
-          <Pressable style={styles.row} onPress={toggleLanguage}>
+          <Pressable style={[styles.row, styles.lastRow]} onPress={toggleLanguage}>
             <View style={styles.rowLeft}>
               <View style={[styles.rowIcon, { backgroundColor: '#E8F4F8' }]}>
                 <Ionicons name="language" size={18} color="#3A7FBF" />
@@ -102,7 +101,6 @@ export function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Notifications */}
         <Text style={styles.sectionLabel}>{t('settings.notifications')}</Text>
         <View style={styles.card}>
           <View style={[styles.row, styles.lastRow]}>
@@ -121,7 +119,6 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        {/* App Blocking */}
         <Text style={styles.sectionLabel}>{t('settings.appBlocking')}</Text>
         <View style={styles.card}>
           <Pressable style={[styles.row, styles.lastRow]} onPress={() => setShowAppPicker(true)}>
@@ -138,7 +135,6 @@ export function SettingsScreen() {
           </Pressable>
         </View>
 
-        {/* Calculation Method */}
         <Text style={styles.sectionLabel}>{t('settings.calcMethod')}</Text>
         <View style={styles.card}>
           {CALC_METHODS.map((key, index) => (
@@ -157,7 +153,6 @@ export function SettingsScreen() {
           ))}
         </View>
 
-        {/* Madhab */}
         <Text style={styles.sectionLabel}>{t('settings.madhab')}</Text>
         <View style={styles.card}>
           {[Madhab.Shafi, Madhab.Hanafi].map((key, index) => (
@@ -176,7 +171,6 @@ export function SettingsScreen() {
           ))}
         </View>
 
-        {/* About & Reset */}
         <View style={styles.card}>
           <Pressable style={styles.row} onPress={() => setShowAbout(true)}>
             <View style={styles.rowLeft}>
@@ -216,9 +210,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: Colors.primary,
     letterSpacing: -0.3,
+    fontFamily: Fonts.extrabold,
   },
   scroll: {
     paddingHorizontal: 20,
@@ -226,13 +220,13 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '700',
     color: Colors.textMuted,
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
     marginBottom: 8,
     marginTop: 24,
     marginLeft: 4,
     textTransform: 'uppercase',
+    fontFamily: Fonts.bold,
   },
   card: {
     backgroundColor: Colors.white,
@@ -268,17 +262,18 @@ const styles = StyleSheet.create({
   },
   rowText: {
     fontSize: 15,
-    fontWeight: '500',
     color: Colors.text,
+    fontFamily: Fonts.semibold,
   },
   rowTextSelected: {
     color: Colors.primary,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
   rowSub: {
     fontSize: 12,
     color: Colors.textMuted,
     marginTop: 1,
+    fontFamily: Fonts.regular,
   },
   backRow: {
     flexDirection: 'row',
@@ -289,8 +284,8 @@ const styles = StyleSheet.create({
   },
   backLabel: {
     fontSize: 17,
-    fontWeight: '600',
     color: Colors.primary,
+    fontFamily: Fonts.bold,
   },
   footerText: {
     fontSize: 12,
@@ -298,5 +293,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 32,
     opacity: 0.6,
+    fontFamily: Fonts.semibold,
   },
 });

@@ -15,7 +15,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useTranslation } from 'react-i18next';
 import { getPrayerTimesForDate, getNextPrayerBrief } from '../utils/prayerEngine';
 import { formatDurationMs } from '../utils/formatDuration';
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { QiblaCompass } from '../components/QiblaCompass';
@@ -37,13 +37,6 @@ const ARABIC_NAMES: Record<string, string> = {
   maghrib: 'المغرب',
   isha: 'العشاء',
 };
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12) return 'Good Morning';
-  if (h >= 12 && h < 17) return 'Good Afternoon';
-  return 'Good Evening';
-}
 
 function getPrayerTimeById(prayerTimes: any, id: ObligatoryPrayerId): Date | null {
   if (!prayerTimes) return null;
@@ -69,10 +62,10 @@ function PrayerRow({ id, isCompleted, time, prayerName, onToggle }: PrayerRowPro
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.97, duration: 70, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 350 }),
+      Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, friction: 10 }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 5, tension: 300 }),
     ]).start();
     onToggle();
   };
@@ -88,9 +81,7 @@ function PrayerRow({ id, isCompleted, time, prayerName, onToggle }: PrayerRowPro
             {isCompleted && <Ionicons name="checkmark" size={14} color={Colors.white} />}
           </View>
           <View>
-            <Text style={[styles.prayerName, isCompleted && styles.textDone]}>
-              {prayerName}
-            </Text>
+            <Text style={[styles.prayerName, isCompleted && styles.textDone]}>{prayerName}</Text>
             <Text style={[styles.prayerTime, isCompleted && styles.timeDone]}>
               {isCompleted ? 'Prayed' : fmtTime(time)}
             </Text>
@@ -121,8 +112,40 @@ export function HomeScreen() {
 
   const { todayLog, setCompleted } = usePrayerLog();
   const activeFocus = useAppBlocking();
-
   const completedCount = OBLIGATORY_PRAYER_IDS.filter(id => todayLog[id]).length;
+
+  // ── Entrance Animations ─────────────────────────────
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const cardsAnim = useRef(new Animated.Value(0)).current;
+  const rowAnims = useRef(OBLIGATORY_PRAYER_IDS.map(() => new Animated.Value(0))).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const entrance = Animated.sequence([
+      Animated.timing(headerAnim, { toValue: 1, duration: 480, useNativeDriver: true }),
+      Animated.timing(cardsAnim, { toValue: 1, duration: 420, useNativeDriver: true }),
+      Animated.stagger(
+        75,
+        rowAnims.map(anim =>
+          Animated.spring(anim, { toValue: 1, useNativeDriver: true, friction: 7, tension: 90 })
+        )
+      ),
+    ]);
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.022, duration: 2200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 2200, useNativeDriver: true }),
+      ])
+    );
+
+    entrance.start(() => pulse.start());
+    return () => {
+      entrance.stop();
+      pulse.stop();
+    };
+  }, []);
+  // ────────────────────────────────────────────────────
 
   const handleMissed = () => {
     if (activeFocus) {
@@ -156,10 +179,26 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: headerPaddingTop }]}>
+      {/* Animated Header */}
+      <Animated.View
+        style={[
+          styles.header,
+          { paddingTop: headerPaddingTop },
+          {
+            opacity: headerAnim,
+            transform: [
+              {
+                translateY: headerAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-18, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <View>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
+          <Text style={styles.arabicGreeting}>السلام عليكم</Text>
           <Text style={styles.dateStr}>{todayStr}</Text>
         </View>
         <Pressable
@@ -172,41 +211,56 @@ export function HomeScreen() {
             color={showCompass ? Colors.white : Colors.primary}
           />
         </Pressable>
-      </View>
+      </Animated.View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Qibla Compass */}
+        {/* Compass */}
         {showCompass && coordinates && (
           <View style={styles.compassCard}>
             <QiblaCompass latitude={coordinates.latitude} longitude={coordinates.longitude} />
           </View>
         )}
 
-        {/* Streak */}
-        <StreakCard />
+        {/* Streak + Next Prayer — animated as one group */}
+        <Animated.View
+          style={{
+            opacity: cardsAnim,
+            transform: [
+              {
+                translateY: cardsAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [24, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <StreakCard />
 
-        {/* Next Prayer */}
-        {nextPrayer != null && (
-          <View style={styles.nextCard}>
-            <View style={styles.nextLeft}>
-              <Text style={styles.nextLabel}>NEXT PRAYER</Text>
-              <Text style={styles.nextName}>{t(`prayer.${nextPrayer.id}`)}</Text>
-              <Text style={styles.nextArabic}>{ARABIC_NAMES[nextPrayer.id] ?? ''}</Text>
-              <View style={styles.nextTimeRow}>
-                <Ionicons name="time-outline" size={13} color="rgba(245,242,230,0.55)" />
-                <Text style={styles.nextAt}> {fmtTime(nextPrayer.at)}</Text>
+          {nextPrayer != null && (
+            <View style={styles.nextCard}>
+              <View style={styles.nextLeft}>
+                <Text style={styles.nextLabel}>NEXT PRAYER</Text>
+                <Text style={styles.nextName}>{t(`prayer.${nextPrayer.id}`)}</Text>
+                <Text style={styles.nextArabic}>{ARABIC_NAMES[nextPrayer.id] ?? ''}</Text>
+                <View style={styles.nextTimeRow}>
+                  <Ionicons name="time-outline" size={13} color="rgba(245,242,230,0.5)" />
+                  <Text style={styles.nextAt}> {fmtTime(nextPrayer.at)}</Text>
+                </View>
+              </View>
+              <View style={styles.nextRight}>
+                <Text style={styles.nextIn}>in</Text>
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                  <Text style={styles.nextCountdown}>
+                    {msUntilNext != null ? formatDurationMs(msUntilNext) : '--'}
+                  </Text>
+                </Animated.View>
               </View>
             </View>
-            <View style={styles.nextRight}>
-              <Text style={styles.nextIn}>in</Text>
-              <Text style={styles.nextCountdown}>
-                {msUntilNext != null ? formatDurationMs(msUntilNext) : '--'}
-              </Text>
-            </View>
-          </View>
-        )}
+          )}
+        </Animated.View>
 
-        {/* Section: Today's Prayers */}
+        {/* Section header */}
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitle}>Today's Prayers</Text>
           <View style={styles.progressRow}>
@@ -220,16 +274,31 @@ export function HomeScreen() {
           </View>
         </View>
 
+        {/* Staggered prayer rows */}
         <View style={styles.prayerList}>
-          {OBLIGATORY_PRAYER_IDS.map(id => (
-            <PrayerRow
+          {OBLIGATORY_PRAYER_IDS.map((id, index) => (
+            <Animated.View
               key={id}
-              id={id}
-              isCompleted={todayLog[id]}
-              time={getPrayerTimeById(prayerTimes, id)}
-              prayerName={t(`prayer.${id}`)}
-              onToggle={() => handleToggle(id, todayLog[id])}
-            />
+              style={{
+                opacity: rowAnims[index],
+                transform: [
+                  {
+                    translateY: rowAnims[index].interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [28, 0],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <PrayerRow
+                id={id}
+                isCompleted={todayLog[id]}
+                time={getPrayerTimeById(prayerTimes, id)}
+                prayerName={t(`prayer.${id}`)}
+                onToggle={() => handleToggle(id, todayLog[id])}
+              />
+            </Animated.View>
           ))}
         </View>
 
@@ -286,19 +355,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 22,
-    paddingVertical: 14,
+    paddingBottom: 14,
   },
-  greeting: {
-    fontSize: 22,
-    fontWeight: '700',
+  arabicGreeting: {
+    fontSize: 24,
     color: Colors.primary,
-    letterSpacing: -0.3,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   dateStr: {
     fontSize: 13,
     color: Colors.textMuted,
-    fontWeight: '500',
-    marginTop: 2,
+    fontFamily: Fonts.semibold,
+    marginTop: 3,
   },
   compassBtn: {
     width: 40,
@@ -337,7 +406,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.28,
     shadowRadius: 16,
     elevation: 8,
   },
@@ -346,23 +415,23 @@ const styles = StyleSheet.create({
   },
   nextLabel: {
     fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(245,242,230,0.5)',
-    letterSpacing: 1.5,
+    color: 'rgba(245,242,230,0.45)',
+    letterSpacing: 2,
     marginBottom: 6,
+    fontFamily: Fonts.extrabold,
   },
   nextName: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 32,
     color: Colors.white,
     letterSpacing: -0.5,
+    lineHeight: 36,
+    fontFamily: Fonts.extrabold,
   },
   nextArabic: {
     fontSize: 20,
-    color: 'rgba(245,242,230,0.45)',
+    color: 'rgba(245,242,230,0.35)',
     marginTop: 2,
     marginBottom: 10,
-    fontWeight: '400',
   },
   nextTimeRow: {
     flexDirection: 'row',
@@ -370,24 +439,24 @@ const styles = StyleSheet.create({
   },
   nextAt: {
     fontSize: 13,
-    color: 'rgba(245,242,230,0.55)',
-    fontWeight: '500',
+    color: 'rgba(245,242,230,0.5)',
+    fontFamily: Fonts.semibold,
   },
   nextRight: {
     alignItems: 'flex-end',
   },
   nextIn: {
     fontSize: 12,
-    color: 'rgba(245,242,230,0.45)',
-    fontWeight: '600',
+    color: 'rgba(245,242,230,0.4)',
     letterSpacing: 0.5,
     marginBottom: 2,
+    fontFamily: Fonts.semibold,
   },
   nextCountdown: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
     color: Colors.white,
     letterSpacing: -0.5,
+    fontFamily: Fonts.extrabold,
   },
   sectionRow: {
     flexDirection: 'row',
@@ -396,9 +465,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
     color: Colors.primary,
+    fontFamily: Fonts.bold,
   },
   progressRow: {
     flexDirection: 'row',
@@ -416,9 +485,9 @@ const styles = StyleSheet.create({
   },
   progressCount: {
     fontSize: 12,
-    fontWeight: '600',
     color: Colors.textMuted,
     marginLeft: 4,
+    fontFamily: Fonts.semibold,
   },
   prayerList: {
     gap: 10,
@@ -459,14 +528,14 @@ const styles = StyleSheet.create({
   },
   prayerName: {
     fontSize: 17,
-    fontWeight: '700',
     color: Colors.primary,
+    fontFamily: Fonts.bold,
   },
   prayerTime: {
     fontSize: 13,
     color: Colors.textMuted,
     marginTop: 1,
-    fontWeight: '500',
+    fontFamily: Fonts.semibold,
   },
   textDone: {
     color: Colors.white,
@@ -478,7 +547,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: Colors.primary,
     opacity: 0.18,
-    fontWeight: '400',
   },
   arabicDone: {
     color: Colors.white,
@@ -500,6 +568,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textLight,
     lineHeight: 20,
+    fontFamily: Fonts.regular,
   },
   quoteSection: {
     alignItems: 'center',
@@ -508,14 +577,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   quoteMark: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   quoteMarkText: {
-    fontSize: 48,
+    fontSize: 52,
     color: Colors.accent,
-    lineHeight: 40,
-    fontWeight: '700',
+    lineHeight: 44,
     opacity: 0.6,
+    fontFamily: Fonts.extrabold,
   },
   quoteText: {
     fontSize: 16,
@@ -523,12 +592,13 @@ const styles = StyleSheet.create({
     color: Colors.textLight,
     textAlign: 'center',
     lineHeight: 26,
+    fontFamily: Fonts.regular,
   },
   quoteSource: {
     fontSize: 12,
     color: Colors.textMuted,
     marginTop: 10,
-    fontWeight: '600',
     letterSpacing: 0.5,
+    fontFamily: Fonts.semibold,
   },
 });
